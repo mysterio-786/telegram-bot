@@ -8,6 +8,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
 
 app = Flask(__name__)
+last_update_id = None
 
 @app.route("/")
 def home():
@@ -15,30 +16,37 @@ def home():
 
 @app.route(f"/{BOT_TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
+    global last_update_id
 
-    if update.message:
-        chat_id = update.message.chat_id
-        text = update.message.text
+    try:
+        update = Update.de_json(request.get_json(force=True), bot)
 
-        if text == "/start":
-            asyncio.run(bot.send_message(chat_id, "Send me a YouTube link 🎥"))
+        # ✅ duplicate block
+        if update.update_id == last_update_id:
             return "ok"
-        
-        if "youtube.com" not in text and "youtu.be" not in text:
-            asyncio.run(bot.send_message(chat_id, "❌ Please send a valid Youtube link"))
-            return "ok"
+        last_update_id = update.update_id
 
-        asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
+        if update.message:
+            chat_id = update.message.chat_id
+            text = update.message.text
 
-        ydl_opts = {
-            'format': 'best[ext=mp4]/best',
-            'outtmpl': 'video.%(ext)s',
-            'noplaylist': True,
-            'quiet': False,
-        }
+            if text == "/start":
+                asyncio.run(bot.send_message(chat_id, "Send me a YouTube link 🎥"))
+                return "ok"
 
-        try:
+            if "youtube.com" not in text and "youtu.be" not in text:
+                asyncio.run(bot.send_message(chat_id, "❌ Please send a valid YouTube link"))
+                return "ok"
+
+            asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
+
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best',
+                'outtmpl': 'video.%(ext)s',
+                'noplaylist': True,
+                'quiet': False,
+            }
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(text, download=True)
                 filename = ydl.prepare_filename(info)
@@ -48,11 +56,12 @@ def webhook():
 
             os.remove(filename)
 
-        except Exception as e:
-            asyncio.run(bot.send_message(
-                chat_id,
-                f"❌ Error: {str(e)}"
-            ))
+    except Exception as e:
+        print("ERROR:", e)
+        try:
+            asyncio.run(bot.send_message(chat_id, f"❌ Error: {str(e)}"))
+        except:
+            pass
 
     return "ok"
 
