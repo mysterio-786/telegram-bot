@@ -47,7 +47,10 @@ def webhook():
             os.remove(filename)
 
         except Exception as e:
-            asyncio.run(bot.send_message(chat_id, f"❌ Error: {str(e)}"))
+    asyncio.run(bot.send_message(
+        chat_id,
+        "❌ This video can't be downloaded (YouTube restriction).\nTry another video 👍"
+    ))
 
     return "ok"
 
