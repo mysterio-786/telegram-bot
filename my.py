@@ -1,6 +1,5 @@
 import os
 import yt_dlp
-import asyncio
 from flask import Flask, request
 from telegram import Bot, Update
 
@@ -31,14 +30,14 @@ def webhook():
             text = update.message.text
 
             if text == "/start":
-                asyncio.run(bot.send_message(chat_id, "Send me a YouTube link 🎥"))
+                bot.send_message(chat_id, "Send me a YouTube link 🎥")
                 return "ok"
 
             if "youtube.com" not in text and "youtu.be" not in text:
-                asyncio.run(bot.send_message(chat_id, "❌ Please send a valid YouTube link"))
+                bot.send_message(chat_id, "❌ Please send a valid YouTube link")
                 return "ok"
 
-            asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
+            bot.send_message(chat_id, "Downloading... ⏳")
 
             ydl_opts = {
                 'format': 'best[ext=mp4]/best',
@@ -52,14 +51,14 @@ def webhook():
                 filename = ydl.prepare_filename(info)
 
             with open(filename, 'rb') as video:
-                asyncio.run(bot.send_video(chat_id, video))
+                bot.send_video(chat_id, video)
 
             os.remove(filename)
 
     except Exception as e:
         print("ERROR:", e)
         try:
-            asyncio.run(bot.send_message(chat_id, f"❌ Error: {str(e)}"))
+            bot.send_message(chat_id, f"❌ Error: {str(e)}")
         except:
             pass
 
