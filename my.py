@@ -24,6 +24,10 @@ def webhook():
         if text == "/start":
             asyncio.run(bot.send_message(chat_id, "Send me a YouTube link 🎥"))
             return "ok"
+        
+        if "youtube.com" not in text and "youtu.be" not in text:
+            asyncio.run(bot.send_message(chat_id, "❌ Please send a valid Youtube link"))
+            return "ok"
 
         asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
 
