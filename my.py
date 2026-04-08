@@ -1,48 +1,51 @@
 import os
 import yt_dlp
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from flask import Flask, request
+from telegram import Bot, Update
 
-# 🔐 Token from Render Environment Variable
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=BOT_TOKEN)
 
-# /start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Send me a YouTube link 🎥")
+app = Flask(__name__)
 
-# Handle messages
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = update.message.text
+@app.route("/")
+def home():
+    return "Bot is running!"
 
-    await update.message.reply_text("Downloading... ⏳")
+@app.route(f"/{BOT_TOKEN}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
 
-    ydl_opts = {
-        'format': 'best',
-        'outtmpl': 'video.%(ext)s'
-    }
+    if update.message:
+        chat_id = update.message.chat_id
+        text = update.message.text
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        if text == "/start":
+            bot.send_message(chat_id, "Send me a YouTube link 🎥")
+            return "ok"
 
-        # Send file
-        for file in os.listdir():
-            if file.startswith("video"):
-                await update.message.reply_video(video=open(file, 'rb'))
-                os.remove(file)
+        bot.send_message(chat_id, "Downloading... ⏳")
 
-    except Exception as e:
-        await update.message.reply_text(f"Error: {e}")
+        ydl_opts = {
+            'format': 'best[ext=mp4]',
+            'outtmpl': 'video.%(ext)s',
+            'noplaylist': True
+        }
 
-# Main function
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(text, download=True)
+                filename = ydl.prepare_filename(info)
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+            with open(filename, 'rb') as video:
+                bot.send_video(chat_id, video)
 
-    print("Bot running...")
-    app.run_polling()
+            os.remove(filename)
+
+        except Exception as e:
+            bot.send_message(chat_id, f"Error: {e}")
+
+    return "ok"
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=10000)
