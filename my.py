@@ -28,11 +28,10 @@ def webhook():
         asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
 
         ydl_opts = {
-            'format': 'best[ext=mp4]',
+            'format': 'bestvideo+bestaudio/best',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
-            'quiet': True,
-            'nocheckcertificate': True
+            'quiet': False,
         }
 
         try:
@@ -45,10 +44,10 @@ def webhook():
 
             os.remove(filename)
 
-        except Exception:
+        except Exception as e:
             asyncio.run(bot.send_message(
                 chat_id,
-                "❌ This video can't be downloaded (YouTube restriction).\nTry another video 👍"
+                f"❌ Error: {str(e)}"
             ))
 
     return "ok"
