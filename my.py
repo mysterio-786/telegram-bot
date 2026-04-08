@@ -28,7 +28,7 @@ def webhook():
         asyncio.run(bot.send_message(chat_id, "Downloading... ⏳"))
 
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
+            'format': 'best[ext=mp4]/best',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
             'quiet': False,
